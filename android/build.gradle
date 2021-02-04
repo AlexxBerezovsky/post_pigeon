@@ -33,4 +33,5 @@ task clean(type: Delete) {
 dependencies {
     implementation platform('com.google.firebase:firebase-bom:26.4.0')
     implementation 'com.google.firebase:firebase-analytics-ktx'
+    implementation 'com.firebaseui:firebase-ui-auth:6.4.0'
 }

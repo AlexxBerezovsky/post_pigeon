@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+//import 'package:flutter/foundation.dart';
 
 class User{
   String userid;
@@ -8,7 +8,9 @@ class User{
   String photoURL;
   String location;
   String settings;
+  String biography;
   String datecreated;
+
 
 User({
   this.userid,
@@ -18,6 +20,7 @@ User({
   this.photoURL,
   this.location,
   this.settings,
+  this.biography,
   this.datecreated
 });
 
@@ -30,6 +33,7 @@ factory User.fromMap(Map<dynamic, dynamic>map){
   photoURL: map['photoURL'],
     location: map['location'],
     settings: map['settings'],
+    biography: map['biography'],
     datecreated: map['datecreated'],
   );
   //definiton of unique user
