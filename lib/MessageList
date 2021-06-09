@@ -1,0 +1,145 @@
+import 'package:bubble/bubble.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:pppost_pigeon/Settings/CurrentUser.dart';
+import 'package:pppost_pigeon/Settings/MessegeRecivier.dart';
+import 'package:pppost_pigeon/Models/Groups.dart';
+import 'package:pppost_pigeon/Models/Users.dart';
+import 'package:provider/provider.dart';
+import 'package:pppost_pigeon/Models/Messeges.dart';
+import 'package:pppost_pigeon/Settings/DataHelp.dart';
+
+
+class MessageList extends StatefulWidget {
+  @override
+  _MessageListState createState() => _MessageListState();
+
+  final String messageReceiverType;
+  final String receiver;
+  final User currentUser;
+
+  MessageList({
+    this.messageReceiverType,
+    this.receiver,
+    this.currentUser
+  });
+}
+
+class _MessageListState extends State<MessageList> {
+  String currentUserID = "";
+  double generateWidthForBubble(String string) {
+    int maxString = 30;
+    int length = string.length > maxString? maxString : string.length;
+    int minimumLength = 100;
+    int maximumLength = 320;
+    return ((minimumLength - maximumLength) * (length / maxString)) + maximumLength;
+  }
+
+  @override
+  Widget build(BuildContext context){
+    final messageList = Provider.of<List<Messages>>(context) ?? [];
+    final userList = Provider.of<List<User>>(context) ?? [];
+    final groupList = Provider.of<List<Groups>>(context) ?? [];
+    List<Messages> queriedMessage = List<Messages>();
+    getCurrentUserID() async {
+      FirebaseUser user = await FirebaseAuth.instance.currentUser();
+      currentUserID = user.uid;
+    }
+
+    getCurrentUserID();
+
+    if(widget.messageReceiverType == MessagerecivierType.individual){
+      for(int i = 0; i< messageList.length; i++){
+        if(
+        ((messageList[i].receiverid == widget.receiver)
+            &&
+            (messageList[i].senderid == currentUserID))
+            ||
+            (
+                ((messageList[i].receiverid == DataHelp().getUsernameFromid(currentUserID, userList))
+                    &&
+                    (messageList[i].senderid == DataHelp().getidFromUsername(widget.receiver, userList)))
+            )
+        )
+        {
+          queriedMessage.add(messageList[i]);
+        }
+      }
+    }
+    else{
+      User thisUser = DataHelp().getuserFromid(currentUserID, userList);
+      for(int i = 0; i< messageList.length; i++){
+        Groups chosenGroup = DataHelp().getGroupViaid(messageList[i].receiverid, groupList);
+        if(chosenGroup != null && DataHelp().userbelongTogroup(thisUser, chosenGroup) &&
+            widget.receiver == messageList[i].receiverid)
+        {
+          queriedMessage.add(messageList[i]);
+        }
+      }
+    }
+
+    DataHelp().readAllMessages(queriedMessage);
+    return ListView.builder(
+      itemCount: queriedMessage.length,
+      itemBuilder: (context, index) {
+        return Bubble(
+
+          color: queriedMessage[index].senderid == CurrentUser.user.userid ?
+          Colors.lightGreen:
+          Colors.white,
+
+          margin: queriedMessage[index].senderid == CurrentUser.user.userid ?
+          BubbleEdges.fromLTRB(generateWidthForBubble(queriedMessage[index].message), 15, 20, 0):
+          BubbleEdges.fromLTRB(20, 15, generateWidthForBubble(queriedMessage[index].message), 0),
+
+          alignment: queriedMessage[index].senderid == CurrentUser.user.userid ?
+          Alignment.topRight:
+          Alignment.topLeft,
+
+          nipWidth: 8,
+          nipHeight: 7,
+          nip: queriedMessage[index].senderid == CurrentUser.user.userid ?
+          BubbleNip.rightTop:
+          BubbleNip.leftTop,
+
+
+          child: Column
+            (
+
+            children: <Widget>[
+              queriedMessage[index].senderid == CurrentUser.user.userid ?
+              SizedBox(
+                width: 0,
+                height: 0,
+              ):
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(DataHelp().getuserFromid(queriedMessage[index].senderid, userList).username,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blueAccent,
+                  ),
+                ),
+              ),
+              queriedMessage[index].messageType == "Regular"?
+              Text(queriedMessage[index].message , style: TextStyle(
+                  fontSize: 14
+              ))
+                  :
+              Container(
+                  child: Image.network(queriedMessage[index].message)
+              ),
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Text(queriedMessage[index].receivedAt.toString().substring(11,16), style: TextStyle(
+                    fontSize: 11
+                ),
+                ),
+              )
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
